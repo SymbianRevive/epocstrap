@@ -78,9 +78,27 @@ _multi_extract _just_extract "${GCCE_COMPONENT_ARCHIVES[@]}" >/dev/null
 
   _gcce_build_target gcc GCC '' \
     --target=arm-none-symbianelf \
-    --enable-languages=c,c++,lto \
-    --disable-libstdcxx-pch \
+    --with-local-prefix="${EPOCROOT_FINAL:-${HOME}/epocroot}/epoc32" \
     --with-gmp="${_GCCE_BUILD_ROOT}"/gmp.install \
+    --enable-languages=c,c++,lto \
+    --enable-lto \
+    --enable-interwork \
+    --enable-long-long \
+    --enable-tls \
+    --enable-multilib \
+    --enable-wchar_t \
+    --enable-c99 \
+    --with-newlib \
+    --with-dwarf2 \
+    --with-static-standard-libraries \
+    --disable-option-checking \
+    --disable-hosted-libstdcxx \
+    --disable-libstdcxx-pch \
+    --disable-shared \
+    --disable-threads \
+    --disable-nls \
+    --disable-win32-registry \
     --disable-libmudflap \
-    --disable-libssp
+    --disable-libssp \
+    --disable-libquadmath
 &>/dev/null popd

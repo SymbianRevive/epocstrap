@@ -57,11 +57,13 @@ rm -rf "${GCCE1210_PREFIX}"
       && wget -O ../binutils.tbz2 "${GCCM_BINUTILS_URL:-https://ftp.gnu.org/gnu/binutils/binutils-2.35.tar.bz2}"
     tar -xjf ../binutils.tbz2 --strip-components=1
   &>/dev/null popd
+  &>/dev/null mkdir -p isl/
   &>/dev/null pushd isl/
     [[ ! -f "../isl.tbz2" ]] \
-      && wget -O ../isl.tbz2 "${GCCM_ISL_URL:-https://libisl.sourceforge.io/isl-$_islver.tar.bz2}"
+      && wget -O ../isl.tbz2 "${GCCM_ISL_URL:-https://libisl.sourceforge.io/isl-0.15.tar.bz2}"
     tar -xjf ../isl.tbz2 --strip-components=1
   &>/dev/null popd
+  &>/dev/null mkdir -p gcc/
   &>/dev/null pushd gcc/
     [[ ! -f "../gcc.tbz2" ]] \
       && wget -O ../gcc.txz "${GCCM_GCC_URL:-https://gcc.gnu.org/pub/gcc/releases/gcc-12.1.0/gcc-12.1.0.tar.xz}"
@@ -114,4 +116,4 @@ rm -rf "${GCCE1210_PREFIX}"
     --disable-libquadmath
 &>/dev/null popd
 
-"${GCCM_PREFIX}/bin/arm-none-symbianelf-g++" -x "c++" -o /dev/null - <<<"int main(){}"
+"${GCCE1210_PREFIX}/bin/arm-none-symbianelf-g++" -x "c++" -nostdlib -o /dev/null - <<<"int main(){}"
