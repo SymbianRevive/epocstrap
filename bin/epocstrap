@@ -21,7 +21,6 @@ EPOCROOT=''
 _cleanup () {
   &>/dev/null cd / ||:
   if [[ ! -z "${EPOCROOT}" ]] && mountpoint "${EPOCROOT}" &>/dev/null ; then
-    #sudo umount "${EPOCROOT}" &>/dev/null \
     fusermount -u "${EPOCROOT}" &>/dev/null \
       || >&2 echo "HEADS UP: You may need to unmount the temporary EPOCROOT at \"${EPOCROOT}\" manually!"
     rmdir "${EPOCROOT}" &>/dev/null \
@@ -189,7 +188,7 @@ _check_required_commands () {
 }
 
 _check_required_commands \
-  tac git bash perl gcc g++ ld cpp lz4 wget aria2c mkfs.ext4 sudo
+  tac git bash perl gcc g++ ld cpp lz4 wget aria2c mkfs.ext4 #sudo
 
 alias wget='wget -nv'
 
@@ -201,6 +200,7 @@ if [[ "${_GCC_VER}" -gt 13 ]] || [[ "${_GCC_VER}" -lt 4 ]]; then
   exit 1
 else
   >&2 echo "Using GCC version ${_GCC_VER}"
+  >&2 echo
 fi
 
 if [[ "${_INSTALL_COMPONENTS[*]}" != *"modern-gcc"* ]] \
@@ -258,24 +258,19 @@ readonly _EPOCROOT_SOURCE_IMAGE=$(mktemp)
 _EPOCROOT_IMAGE=${_EPOCROOT_SOURCE_IMAGE}
 
 _prepare_image () {
-  >&2 echo -e ' ==> Preparing the image for the EPOCROOT'
-
-  >&2 truncate -s "${_IMAGE_SIZE}" "${_EPOCROOT_IMAGE}"
-  >&2 mkfs.ext4 -O casefold "${_EPOCROOT_IMAGE}"
-
-  #>&2 sudo mount -o loop,relatime,X-mount.idmap=b:0:"$(id -u "${USER}")":1 "${_EPOCROOT_IMAGE}" "${EPOCROOT}"
   if ! &>/dev/null command -v lklfuse ; then
     _host_build_lklfuse
   fi
-  lklfuse "${_EPOCROOT_IMAGE}" "${EPOCROOT}" -o type=ext4,opts='relatime'
 
-  mkdir -p "${EPOCROOT}"/epoc32/sbs_config
-  mkdir -p "${EPOCROOT}"/epoc32/tools
-  mkdir -p "${EPOCROOT}"/epoc32/include
-  mkdir -p "${EPOCROOT}"/epoc32/release
+  >&2 echo -e ' ==> Preparing the image for the EPOCROOT'
 
-  chattr +F "${EPOCROOT}"/epoc32/include
-  chattr +F "${EPOCROOT}"/epoc32/release
+  >&2 zcat "${_AUX_DIR}"/share/baseimage.ext4.gz >"${_EPOCROOT_IMAGE}"
+  #>&2 truncate -s "${_IMAGE_SIZE}" "${_EPOCROOT_IMAGE}"
+  >&2 e2fsck -yf "${_EPOCROOT_IMAGE}"
+  >&2 resize2fs "${_EPOCROOT_IMAGE}" "$(numfmt --from=iec -- "${_IMAGE_SIZE}")"
+  >&2 e2fsck -yf "${_EPOCROOT_IMAGE}" ||:
+
+  >&2 lklfuse "${_EPOCROOT_IMAGE}" "${EPOCROOT}" -o type=ext4,opts='relatime'
 }
 
 EPOCSTRAP_CACHEDIR=${EPOCSTRAP_CACHEDIR:-${HOME}/.cache/epocstrap}
@@ -368,9 +363,9 @@ _host_build_lklfuse () {
     || wget -O lkl.tar.gz http://github.com/lkl/linux/tarball/699f87c5ee5f2302e615f5e7dae671fc959adf80
   &>/dev/null pushd $(_just_extract lkl.tar.gz)
     >&2 make ARCH=lkl mrproper
-    >&2 make ARCH=lkl defconfig
-    >&2 scripts/config -e CONFIG_UNICODE
-    >&2 make ARCH=lkl olddefconfig
+    >&2 make -C tools/lkl clean-conf
+    >&2 make -C tools/lkl kernel.config
+    >&2 scripts/config --file tools/lkl/kernel.config -e CONFIG_UNICODE
     >&2 make -C tools/lkl
     >&2 make -C tools/lkl programs_install PREFIX=${PWD}/../hosttools
   &>/dev/null popd
