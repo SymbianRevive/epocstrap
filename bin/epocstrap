@@ -199,6 +199,8 @@ if [[ "${_GCC_VER}" -gt 13 ]] || [[ "${_GCC_VER}" -lt 4 ]]; then
   >&2 echo "Due to breaking changes in GCC 14 onwards, huge amount of maintenance work is required to support it."
   >&2 echo "Heads up to developers: All contributions are very welcome!"
   exit 1
+else
+  >&2 echo "Using GCC version ${_GCC_VER}"
 fi
 
 if [[ "${_INSTALL_COMPONENTS[*]}" != *"modern-gcc"* ]] \
