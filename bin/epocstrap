@@ -304,7 +304,9 @@ _AUX_DIR=$(dirname -- "${_SCRIPT_DIR}")/lib/era
 
 _just_extract () {
   local subdir
-  subdir=${1%%-*}
+  subdir=$1
+  subdir=${subdir%%-*}
+  subdir=${subdir%%.*}
   mkdir -p "${subdir}"
   >&2 echo "Extracting \"$1\" to \"${subdir}\""
   &>/dev/null tar -xaf "$1" -C "${subdir}" --strip-components=1
@@ -366,18 +368,16 @@ _clone_or_pull () {
 
 _host_build_lklfuse () {
   >&2 echo -e ' ==> Building lklfuse'
-  &>/dev/null pushd "${EPOCSTRAP_CACHEDIR}"/
-    &>/dev/null mkdir -p lkl/ ||:
-    &>/dev/null pushd lkl/
-      wget -O- http://github.com/lkl/linux/tarball/699f87c5ee5f2302e615f5e7dae671fc959adf80 \
-        | tar --strip-components=1 -xzf-
-      >&2 make ARCH=lkl mrproper
-      >&2 make ARCH=lkl defconfig
-      >&2 scripts/config -e CONFIG_UNICODE
-      >&2 make ARCH=lkl olddefconfig
-      >&2 make -C tools/lkl
-      >&2 make -C tools/lkl programs_install PREFIX=../hosttools
-    &>/dev/null popd
+  test -f lkl.tar.gz \
+    || wget -O lkl.tar.gz http://github.com/lkl/linux/tarball/699f87c5ee5f2302e615f5e7dae671fc959adf80
+  _just_extract lkl.tar.gz
+  &>/dev/null pushd lkl/
+    >&2 make ARCH=lkl mrproper
+    >&2 make ARCH=lkl defconfig
+    >&2 scripts/config -e CONFIG_UNICODE
+    >&2 make ARCH=lkl olddefconfig
+    >&2 make -C tools/lkl
+    >&2 make -C tools/lkl programs_install PREFIX=${PWD}/../hosttools
   &>/dev/null popd
 
   if ! 2>&1 command -v lklfuse ; then
@@ -386,9 +386,9 @@ _host_build_lklfuse () {
   fi
 }
 
-_prepare_image
-
 &>/dev/null pushd "${EPOCSTRAP_CACHEDIR}"/
+  _prepare_image
+
   if [[ ! -f "${_AUX_DIR}"/get-version.sh ]] ; then
     >&2 echo -e ' ==> Downloading the latest version of ERA'
     _clone_or_pull "${EPOCSTRAP_REPO:-https://github.com/SymbianRevive/ERA.git}" epocstrap
