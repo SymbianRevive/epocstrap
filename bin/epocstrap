@@ -371,7 +371,7 @@ _host_build_lklfuse () {
       >&2 scripts/config -e CONFIG_UNICODE
       >&2 make ARCH=lkl olddefconfig
       >&2 make -C tools/lkl
-      >&2 make -C tools/lkl install_programs PREFIX=../hosttools
+      >&2 make -C tools/lkl programs_install PREFIX=../hosttools
     &>/dev/null popd
   &>/dev/null popd
 
