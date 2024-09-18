@@ -15,6 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install packages
+        run: sudo apt install fuse
+
       - name: Run epocstrap
         run: 'bin/epocstrap -r epocroot.ext4 elf2e32 platformtools uitools modern-gcc'
 

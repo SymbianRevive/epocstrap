@@ -21,7 +21,8 @@ EPOCROOT=''
 _cleanup () {
   &>/dev/null cd / ||:
   if [[ ! -z "${EPOCROOT}" ]] && mountpoint "${EPOCROOT}" &>/dev/null ; then
-    sudo umount "${EPOCROOT}" &>/dev/null \
+    #sudo umount "${EPOCROOT}" &>/dev/null \
+    fusermount -u "${EPOCROOT}" &>/dev/null \
       || >&2 echo "HEADS UP: You may need to unmount the temporary EPOCROOT at \"${EPOCROOT}\" manually!"
     rmdir "${EPOCROOT}" &>/dev/null \
       || >&2 echo "HEADS UP: You may need to remove the leftover directory from the temporary EPOCROOT at \"${EPOCROOT}\" manually!"
@@ -214,13 +215,20 @@ if [[ "${_INSTALL_COMPONENTS[*]}" != *"modern-gcc"* ]] \
     arm-none-symbianelf-strings arm-none-symbianelf-strip
 fi
 
+if [[ "$(LANG=C gcc --version 2>&1 |head -1 |cut -d\  -f3 |cut -d. -f1)" -gt 13 ]] ; then
+  >&2 echo "We apologize, but this version of GCC is currently not supported."
+  >&2 echo "Due to breaking changes in GCC 14 onwards, huge amount of maintenance work is required to support it."
+  >&2 echo "Heads up to developers: All contributions are very welcome!"
+  exit 1
+fi
+
 if (( _SIMULTANEOUS_BUILDS > 1 )) || (( _SIMULTANEOUS_EXTRACTS > 1 )) ; then
   _check_required_commands parallel
 fi
 
 readonly _EPOCROOT_TARGET_IMAGE=${_EPOCROOT_IMAGE}
 
-EPOCROOT="${PWD}/.epocstrap-work"
+EPOCROOT="${PWD}/.epocstrap-work$(mktemp -u)"
 export EPOCROOT
 
 >&2 mkdir -p "${EPOCROOT}" ||:
@@ -251,22 +259,31 @@ fi
 readonly _EPOCROOT_SOURCE_IMAGE=$(mktemp)
 _EPOCROOT_IMAGE=${_EPOCROOT_SOURCE_IMAGE}
 
->&2 truncate -s "${_IMAGE_SIZE}" "${_EPOCROOT_IMAGE}"
->&2 mkfs.ext4 -O casefold "${_EPOCROOT_IMAGE}"
+_prepare_image () {
+  >&2 echo -e ' ==> Preparing the image for the EPOCROOT'
 
->&2 sudo mount -o loop,relatime,X-mount.idmap=b:0:"$(id -u "${USER}")":1 "${_EPOCROOT_IMAGE}" "${EPOCROOT}"
+  >&2 truncate -s "${_IMAGE_SIZE}" "${_EPOCROOT_IMAGE}"
+  >&2 mkfs.ext4 -O casefold "${_EPOCROOT_IMAGE}"
 
-mkdir -p "${EPOCROOT}"/epoc32/sbs_config
-mkdir -p "${EPOCROOT}"/epoc32/tools
-mkdir -p "${EPOCROOT}"/epoc32/include
-mkdir -p "${EPOCROOT}"/epoc32/release
+  #>&2 sudo mount -o loop,relatime,X-mount.idmap=b:0:"$(id -u "${USER}")":1 "${_EPOCROOT_IMAGE}" "${EPOCROOT}"
+  if ! &>/dev/null command -v lklfuse ; then
+    _host_build_lklfuse
+  fi
+  lklfuse "${_EPOCROOT_IMAGE}" "${EPOCROOT}" -o type=ext4,opts='relatime'
 
-chattr +F "${EPOCROOT}"/epoc32/include
-chattr +F "${EPOCROOT}"/epoc32/release
+  mkdir -p "${EPOCROOT}"/epoc32/sbs_config
+  mkdir -p "${EPOCROOT}"/epoc32/tools
+  mkdir -p "${EPOCROOT}"/epoc32/include
+  mkdir -p "${EPOCROOT}"/epoc32/release
+
+  chattr +F "${EPOCROOT}"/epoc32/include
+  chattr +F "${EPOCROOT}"/epoc32/release
+}
 
 EPOCSTRAP_CACHEDIR=${EPOCSTRAP_CACHEDIR:-${HOME}/.cache/epocstrap}
 >&2 echo " ==> Ensuring the cache directory exists at \"${EPOCSTRAP_CACHEDIR}\""
 mkdir -p "${EPOCSTRAP_CACHEDIR}"
+export PATH="${PATH}":"${EPOCSTRAP_CACHEDIR}/hosttools/bin"
 
 >&2 echo " ==> Preparing ENV variables"
 export PATH="${PATH}":"${EPOCROOT}"/epoc32/tools/sbs/bin:"${EPOCROOT}"/epoc32/tools
@@ -344,6 +361,27 @@ _clone_or_pull () {
     >&2 git clone --single-branch -- "$1" "$2"
   fi
 }
+
+_host_build_lklfuse () {
+  >&2 echo -e ' ==> Building lklfuse'
+  &>/dev/null pushd "${EPOCSTRAP_CACHEDIR}"/
+    _clone_or_pull ${LKL_REPO:-https://github.com/lkl/linux.git} lkl
+    &>/dev/null pushd lkl/
+      >&2 make ARCH=lkl defconfig
+      >&2 scripts/config -e CONFIG_UNICODE
+      >&2 make ARCH=lkl olddefconfig
+      >&2 make -C tools/lkl
+      >&2 make -C tools/lkl install_programs PREFIX=../hosttools
+    &>/dev/null popd
+  &>/dev/null popd
+
+  if ! 2>&1 command -v lklfuse ; then
+    >&2 echo -e 'lklfuse build failed'
+    exit 1
+  fi
+}
+
+_prepare_image
 
 &>/dev/null pushd "${EPOCSTRAP_CACHEDIR}"/
   if [[ ! -f "${_AUX_DIR}"/get-version.sh ]] ; then
