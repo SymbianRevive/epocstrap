@@ -220,8 +220,10 @@ fi
 
 readonly _EPOCROOT_TARGET_IMAGE=${_EPOCROOT_IMAGE}
 
-EPOCROOT="$(mktemp -d)"
+EPOCROOT="${PWD}/.epocstrap-work"
 export EPOCROOT
+
+>&2 mkdir -p "${EPOCROOT}" ||:
 
 >&2 echo -e '==> Boostrapping the environment'
 
