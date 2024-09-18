@@ -190,6 +190,13 @@ _check_required_commands () {
 _check_required_commands \
   tac git bash perl gcc g++ ld cpp lz4 wget aria2c mkfs.ext4 sudo
 
+if [[ "$(LANG=C gcc --version 2>&1 |head -1 |cut -d\  -f3 |cut -d. -f1)" -gt 13 ]] ; then
+  >&2 echo "We apologize, but this version of GCC is currently not supported."
+  >&2 echo "Due to breaking changes in GCC 14 onwards, huge amount of maintenance work is required to support it."
+  >&2 echo "Heads up to developers: All contributions are very welcome!"
+  exit 1
+fi
+
 if [[ "${_INSTALL_COMPONENTS[*]}" != *"modern-gcc"* ]] \
   && [[ "${_INSTALL_COMPONENTS[*]}" != *"gcce"* ]] ; then
   _check_required_commands \

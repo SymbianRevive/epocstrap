@@ -5,12 +5,21 @@ The **E**POC**R**OOT **A**ssistant
 Currently, EPOCstrap can create a mountable filesystem image containing
 an EPOCROOT that is fully usable from Linux.
 
+== Requirements
+
+- GCC ≤13
+- Internet connection
+- Modern Bash
+
+The rest of the requirements will be displayed on the screen
+
 == Usage
 
 ----
 $ git clone --single-branch https://github.com/SymbianRevive/ERA.git era/
 $ cd era/
-$ eval $(bin/epocstrap -r ~/epocroot.ext4)
-$ export EPOCROOT=$HOME/epocroot
-$ sudo mount -o loop,X-mount.idmap=b:0:"$(id -u "${USER}")":1 ~/epocroot.ext4 "${EPOCROOT}"
+$ bin/epocstrap -h
+$ bin/epocstrap -r ~/epocroot.ext4 elf2e32 platformtools uitools modern-gcc
 ----
+
+Then, follow the instructions display on screen.
