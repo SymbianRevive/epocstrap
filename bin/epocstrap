@@ -370,8 +370,7 @@ _host_build_lklfuse () {
   >&2 echo -e ' ==> Building lklfuse'
   test -f lkl.tar.gz \
     || wget -O lkl.tar.gz http://github.com/lkl/linux/tarball/699f87c5ee5f2302e615f5e7dae671fc959adf80
-  _just_extract lkl.tar.gz
-  &>/dev/null pushd lkl/
+  &>/dev/null pushd $(_just_extract lkl.tar.gz)
     >&2 make ARCH=lkl mrproper
     >&2 make ARCH=lkl defconfig
     >&2 scripts/config -e CONFIG_UNICODE
