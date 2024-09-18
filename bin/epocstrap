@@ -188,7 +188,7 @@ _check_required_commands () {
 }
 
 _check_required_commands \
-  tac git bash perl gcc g++ ld cpp lz4 wget mkfs.ext4 sudo
+  tac git bash perl gcc g++ ld cpp lz4 wget aria2c mkfs.ext4 sudo
 
 if [[ "${_INSTALL_COMPONENTS[*]}" != *"modern-gcc"* ]] \
   && [[ "${_INSTALL_COMPONENTS[*]}" != *"gcce"* ]] ; then
@@ -402,6 +402,9 @@ echo "export SBS_GCCX86LIB=${SBS_GCCX86LIB}"
 echo "export SBS_SHELL=${SBS_SHELL}"
 >&2 echo -n ' '
 echo 'export SBS_HOME=${EPOCROOT}/epoc32/tools/sbs'
+
+>&2 echo -e '\nTo mount EPOCROOT, use the following command:\n'
+>&2 echo " sudo mount -o loop,relatime,X-mount.idmap=b:0:\$(id -u \"\${USER}\"):1 ${_EPOCROOT_IMAGE} ${EPOCROOT}"
 
 >&2 echo -e '\nYou will then be able to run SBSv2 "raptor" build system as follows:\n'
 >&2 echo ' sbs -b /path/to/group/build.inf'
