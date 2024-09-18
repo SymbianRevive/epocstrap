@@ -1,0 +1,25 @@
+name: EPOCROOT image
+
+on:
+  push:
+    branches: [ $default-branch ]
+  pull_request:
+    branches: [ $default-branch ]
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run epocstrap
+        run: 'bin/epocstrap -r epocroot.ext4 elf2e32 platformtools uitools modern-gcc'
+
+      - name: Archive epocroot.ext4
+        uses: actions/upload-artifact@v4
+        with:
+          name: epocroot
+          path: epocroot.ext4
