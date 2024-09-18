@@ -328,7 +328,8 @@ _clone_or_pull () {
   if [[ -d "$2" ]] && (( ! _FORCE_NEW_CLONE )) ; then
     >&2 git -C "$2" checkout -f ||:
     >&2 git -C "$2" clean -fdx ||:
-    >&2 git -C "$2" pull
+    >&2 git -C "$2" fetch origin
+    >&2 git -C "$2" reset --hard origin/HEAD
   else
     rm -rf "$2"
     >&2 git clone --single-branch -- "$1" "$2"
