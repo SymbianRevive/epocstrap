@@ -193,8 +193,9 @@ _check_required_commands \
 
 alias wget='wget -nv'
 
-if [[ "$(LANG=C gcc --version 2>&1 |head -1 |cut -d\  -f3 |cut -d. -f1)" -gt 13 ]] ; then
-  >&2 echo "We apologize, but this version of GCC is currently not supported."
+_GCC_VER="$(LANG=C gcc --version 2>&1 |head -1 |cut -d\  -f3 |cut -d. -f1)"
+if [[ "${_GCC_VER}" -gt 13 ]] || [[ "${_GCC_VER}" -lt 4 ]]; then
+  >&2 echo "We apologize, but GCC version ${_GCC_VER} is currently not supported."
   >&2 echo "Due to breaking changes in GCC 14 onwards, huge amount of maintenance work is required to support it."
   >&2 echo "Heads up to developers: All contributions are very welcome!"
   exit 1
@@ -215,13 +216,6 @@ if [[ "${_INSTALL_COMPONENTS[*]}" != *"modern-gcc"* ]] \
     arm-none-symbianelf-objdump arm-none-symbianelf-ranlib \
     arm-none-symbianelf-readelf arm-none-symbianelf-size \
     arm-none-symbianelf-strings arm-none-symbianelf-strip
-fi
-
-if [[ "$(LANG=C gcc --version 2>&1 |head -1 |cut -d\  -f3 |cut -d. -f1)" -gt 13 ]] ; then
-  >&2 echo "We apologize, but this version of GCC is currently not supported."
-  >&2 echo "Due to breaking changes in GCC 14 onwards, huge amount of maintenance work is required to support it."
-  >&2 echo "Heads up to developers: All contributions are very welcome!"
-  exit 1
 fi
 
 if (( _SIMULTANEOUS_BUILDS > 1 )) || (( _SIMULTANEOUS_EXTRACTS > 1 )) ; then
