@@ -14,7 +14,7 @@ _LEGACY_GCC=1
 
 _IMAGE_SIZE="4G"
 
-_EPOCROOT_IMAGE="epocroot.ext4"
+_EPOCROOT_IMAGE="${HOME}/epocroot.ext4"
 
 EPOCROOT=''
 
@@ -26,7 +26,7 @@ _cleanup () {
     rmdir "${EPOCROOT}" &>/dev/null \
       || >&2 echo "HEADS UP: You may need to remove the leftover directory from the temporary EPOCROOT at \"${EPOCROOT}\" manually!"
   fi
-  &>/dev/null mv -f "${_EPOCROOT_SOURCE_IMAGE}" "${_EPOCROOT_TARGET_IMAGE}" \
+  mv -f "${_EPOCROOT_SOURCE_IMAGE}" "${_EPOCROOT_TARGET_IMAGE}" \
     || >&2 echo "Could not move \"${_EPOCROOT_SOURCE_IMAGE}\" to \"${_EPOCROOT_TARGET_IMAGE}\""
 }
 
@@ -100,14 +100,11 @@ AUTHORS
 
 COMPONENTS
 
-  Extra tools:
+  Default tools:
         elf2e32 platformtools uitools
 
   Compilers:
         gcce modern-gcc
-
-  Qt:
-        qt-4.8.1
 EOF
 }
 
@@ -175,7 +172,7 @@ MAKEFLAGS+=" -j${MAKEJOBS}"
 
 export MAKEFLAGS
 
-_INSTALL_COMPONENTS=("$@")
+_INSTALL_COMPONENTS=(epac elf2e32 platformtools uitools "$@")
 
 _check_required_commands () {
   for cmd in "$@" ; do
@@ -218,7 +215,7 @@ if (( _SIMULTANEOUS_BUILDS > 1 )) || (( _SIMULTANEOUS_EXTRACTS > 1 )) ; then
   _check_required_commands parallel
 fi
 
-readonly _EPOCROOT_TARGET_IMAGE=${_EPOCROOT_IMAGE}
+declare -r _EPOCROOT_TARGET_IMAGE=$(realpath -- "${_EPOCROOT_IMAGE}")
 
 EPOCROOT="$(mktemp -d)"
 export EPOCROOT
@@ -246,7 +243,7 @@ else
   >&2 echo -e ' ==> Creating an image for the EPOCROOT'
 fi
 
-readonly _EPOCROOT_SOURCE_IMAGE=$(mktemp)
+declare -r _EPOCROOT_SOURCE_IMAGE=$(mktemp)
 _EPOCROOT_IMAGE=${_EPOCROOT_SOURCE_IMAGE}
 
 >&2 truncate -s "${_IMAGE_SIZE}" "${_EPOCROOT_IMAGE}"
@@ -371,6 +368,9 @@ _clone_or_pull () {
   # symbian-implibs
   source "$(command -v install-implibs.sh)"
 
+  # epac
+  source "$(command -v install-epac.sh)"
+
   for component in "${_INSTALL_COMPONENTS[@]}" ; do
     case "${component}" in
       gcc*|*gcc)
@@ -378,8 +378,8 @@ _clone_or_pull () {
         ;;
       *)
         >&2 echo " ==> Installing additional component \"${component}\""
-        _component_script="$(command -v "install-${component}.sh")"
-        source "${_component_script:?No known recipe for this component}"
+        epac -c tools2_rel -S "${component}" \
+          || >&2 echo "EPAC installation failed for component: ${component}"
         ;;
     esac
   done
@@ -396,9 +396,9 @@ echo 'export EPOCROOT=${HOME}/epocroot'
 >&2 echo -n ' '
 echo 'export PATH="${PATH}":"${EPOCROOT}"/epoc32/tools/sbs/bin:"${EPOCROOT}"/epoc32/tools'
 >&2 echo -n ' '
-echo "export SBS_GCCE1210BIN=${SBS_GCCE1210BIN}"
+echo 'export SBS_GCCE1210BIN=${EPOCROOT}/epoc32/tools/gcce-12.1.0/bin'
 >&2 echo -n ' '
-echo "export SBS_GCCE463BIN=${SBS_GCCE463BIN}"
+echo 'export SBS_GCCE463BIN=${EPOCROOT}/epoc32/tools/gcce-4.6.3/bin'
 >&2 echo -n ' '
 echo "export SBS_GCCX86BIN=${SBS_GCCX86BIN}"
 >&2 echo -n ' '
@@ -411,7 +411,7 @@ echo "export SBS_SHELL=${SBS_SHELL}"
 echo 'export SBS_HOME=${EPOCROOT}/epoc32/tools/sbs'
 
 >&2 echo -e '\nTo mount EPOCROOT, use the following command:\n'
->&2 echo " sudo mount -o loop,relatime,X-mount.idmap=b:0:\$(id -u \"\${USER}\"):1 ${_EPOCROOT_IMAGE} ${EPOCROOT}"
+>&2 echo " sudo mount -o loop,relatime,X-mount.idmap=b:0:\$(id -u \"\${USER}\"):1 ${_EPOCROOT_TARGET_IMAGE} \${EPOCROOT}"
 
 >&2 echo -e '\nYou will then be able to run SBSv2 "raptor" build system as follows:\n'
 >&2 echo ' sbs -b /path/to/group/build.inf'
