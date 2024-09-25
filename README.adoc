@@ -14,13 +14,13 @@ an EPOCROOT that is fully usable from Linux.
 
 The rest of the requirements will be displayed on the screen
 
-== Usage
+== Installation
 
 ----
 $ git clone --single-branch https://github.com/SymbianRevive/ERA.git era/
 $ cd era/
 $ bin/epocstrap -h
-$ bin/epocstrap -r ~/epocroot.ext4
+$ bin/epocstrap -r ~/epocroot.ext4 modern-gcc gcce
 ----
 
 Then, follow the instructions display on screen.
